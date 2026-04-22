@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rhythm Pro</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: radial-gradient(circle at top, #102040, #050814 60%, #02030a 100%);
+      color: white;
+      overflow-x: hidden;
+    }
+
+    .screen {
+      display: none;
+      min-height: 100vh;
+      padding: 20px;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .active {
+      display: flex;
+    }
+
+    .panel {
+      width: min(1000px, 95vw);
+      background: rgba(8, 14, 28, 0.92);
+      border: 1px solid rgba(120, 220, 255, 0.25);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 0 30px rgba(0, 170, 255, 0.12);
+    }
+
+    .title {
+      font-size: clamp(40px, 7vw, 80px);
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #ffffff;
+      text-shadow: 0 0 12px rgba(80, 220, 255, 0.6);
+      margin-bottom: 10px;
+    }
+
+    .sub {
+      color: #9edfff;
+      font-size: 18px;
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.9fr;
+      gap: 20px;
+    }
+
+    .card {
+      background: linear-gradient(180deg, rgba(16, 25, 48, 0.95), rgba(8, 13, 28, 0.95));
+      border: 1px solid rgba(110, 220, 255, 0.18);
+      border-radius: 20px;
+      padding: 20px;
+    }
+
+    .menu-buttons, .level-buttons {
+      display: grid;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    button {
+      border: none;
+      border-radius: 16px;
+      padding: 16px 18px;
+      font-size: 18px;
+      font-weight: 800;
+      cursor: pointer;
+      color: white;
+      background: linear-gradient(90deg, #0e8fff, #1ad7ff);
+    }
+
+    button:hover {
+      opacity: 0.92;
+    }
+
+    .secondary {
+      background: linear-gradient(90deg, #4f6188, #3a4b6c);
+    }
+
+    .level-btn {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .tag {
+      font-size: 13px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(110, 225, 255, 0.14);
+      color: #b8efff;
+    }
+
+    .keys {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .keycap {
+      text-align: center;
+      padding: 18px 8px;
+      border-radius: 16px;
+      font-size: 30px;
+      font-weight: 900;
+      background: linear-gradient(180deg, rgba(25, 58, 97, 1), rgba(9, 22, 44, 1));
+      border: 1px solid rgba(94, 215, 255, 0.28);
+    }
+
+    #gameScreen {
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .topbar {
+      width: min(560px, 96vw);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .hud {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .hud-box {
+      min-width: 105px;
+      background: rgba(8, 15, 28, 0.8);
+      border: 1px solid rgba(112, 220, 255, 0.18);
+      border-radius: 14px;
+      padding: 10px 12px;
+    }
+
+    .hud-label {
+      font-size: 12px;
+      color: #96bdd4;
+    }
+
+    .hud-value {
+      font-size: 24px;
+      font-weight: 900;
+      margin-top: 3px;
+    }
+
+    #gameWrap {
+      position: relative;
+      width: min(560px, 96vw);
+      height: min(780px, 76vh);
+      border-radius: 24px;
+      overflow: hidden;
+      border: 1px solid rgba(104, 221, 255, 0.25);
+      background: linear-gradient(180deg, rgba(7, 11, 23, 1), rgba(3, 7, 16, 1));
+    }
+
+    #lanes {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+    }
+
+    .lane {
+      position: relative;
+      border-left: 1px solid rgba(120, 160, 200, 0.12);
+      border-right: 1px solid rgba(120, 160, 200, 0.12);
+      background: linear-gradient(180deg, rgba(14, 23, 38, 0.22), rgba(7, 12, 24, 0.08));
+    }
+
+    .lane.flash {
+      background: linear-gradient(180deg, rgba(40, 150, 255, 0.28), rgba(12, 40, 82, 0.22));
+    }
+
+    .hit-line {
+      position: absolute;
+      left: 10px;
+      right: 10px;
+      bottom: 120px;
+      height: 8px;
+      border-radius: 999px;
+      background: #83efff;
+      box-shadow: 0 0 22px rgba(131, 239, 255, 0.95);
+      z-index: 2;
+    }
+
+    .note {
+      position: absolute;
+      height: 18px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #ffffff, #d9f7ff);
+      box-shadow: 0 0 18px rgba(255, 255, 255, 0.8);
+      z-index: 3;
+    }
+
+    .bottom-controls {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      bottom: 12px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      z-index: 3;
+    }
+
+    .lane-btn {
+      padding: 18px 10px;
+      border-radius: 18px;
+      font-size: 28px;
+      font-weight: 900;
+      background: linear-gradient(180deg, rgba(22, 38, 72, 0.95), rgba(8, 18, 35, 0.95));
+      border: 1px solid rgba(95, 220, 255, 0.2);
+    }
+
+    .lane-btn.flash {
+      background: linear-gradient(180deg, rgba(45, 182, 255, 0.92), rgba(24, 98, 160, 0.92));
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      background: rgba(2, 5, 14, 0.84);
+      padding: 20px;
+    }
+
+    .overlay.show {
+      display: flex;
+    }
+
+    .result-card {
+      width: min(520px, 95vw);
+      background: linear-gradient(180deg, rgba(12, 18, 36, 0.98), rgba(7, 11, 23, 0.98));
+      border: 1px solid rgba(106, 218, 255, 0.22);
+      border-radius: 24px;
+      padding: 24px;
+    }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin: 18px 0;
+    }
+
+    .result-item {
+      background: rgba(16, 25, 48, 0.92);
+      border: 1px solid rgba(96, 205, 255, 0.12);
+      border-radius: 16px;
+      padding: 14px;
+    }
+
+    .result-item .a {
+      color: #8ebad3;
+      font-size: 13px;
+    }
+
+    .result-item .b {
+      font-size: 24px;
+      font-weight: 900;
+      margin-top: 6px;
+    }
+
+    @media (max-width: 850px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <section id="menuScreen" class="screen active">
+    <div class="panel grid">
+      <div class="card">
+        <div style="font-size:13px; letter-spacing:0.25em; color:#7ccdf3; text-transform:uppercase;">Neon Rhythm System</div>
+        <div class="title">Rhythm Pulse</div>
+        <div class="sub">
+          High-tech rhythm game menu with a how-to-play page and Level 1, 2, 3 selection.
+        </div>
+        <div class="menu-buttons">
+          <button id="startGameBtn">Start Game</button>
+          <button id="howToPlayBtn" class="secondary">How To Play</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Quick Level Select</h2>
+        <div class="level-buttons">
+          <button class="level-btn" data-level="1"><span>Level 1</span><span class="tag">Easy</span></button>
+          <button class="level-btn" data-level="2"><span>Level 2</span><span class="tag">Medium</span></button>
+          <button class="level-btn" data-level="3"><span>Level 3</span><span class="tag">Hard</span></button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="howScreen" class="screen">
+    <div class="panel grid">
+      <div class="card">
+        <h2>How To Play</h2>
+        <ol style="line-height:1.9; font-size:18px; color:#d3f1ff;">
+          <li>Press <b>D F J K</b> to hit the 4 lanes.</li>
+          <li>Wait for the falling note to touch the glowing line.</li>
+          <li>Only <b>Perfect</b> removes the note.</li>
+          <li><b>Good</b> and <b>Bad</b> do not remove the note.</li>
+          <li><b>Miss</b> removes the note and subtracts 500 points.</li>
+        </ol>
+        <div class="keys">
+          <div class="keycap">D</div>
+          <div class="keycap">F</div>
+          <div class="keycap">J</div>
+          <div class="keycap">K</div>
+        </div>
+        <div class="menu-buttons" style="grid-template-columns:1fr 1fr; margin-top:20px;">
+          <button id="goLevelFromHow">Choose Level</button>
+          <button id="backMenuFromHow" class="secondary">Back Menu</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Judgement</h2>
+        <p><b>Perfect</b> = disappears</p>
+        <p><b>Good</b> = stays</p>
+        <p><b>Bad</b> = stays</p>
+        <p><b>Miss</b> = disappears and minus 500</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="levelScreen" class="screen">
+    <div class="panel" style="max-width:760px;">
+      <div class="card">
+        <h2>Select Level</h2>
+        <p style="color:#a6d4e9; font-size:17px;">Choose your difficulty.</p>
+        <div class="level-buttons">
+          <button class="level-btn" data-level="1"><span>Level 1</span><span class="tag">Easy Start</span></button>
+          <button class="level-btn" data-level="2"><span>Level 2</span><span class="tag">More Notes</span></button>
+          <button class="level-btn" data-level="3"><span>Level 3</span><span class="tag">Fast Mode</span></button>
+        </div>
+        <div class="menu-buttons" style="grid-template-columns:1fr 1fr; margin-top:20px;">
+          <button id="backHowFromLevel" class="secondary">How To Play</button>
+          <button id="backMenuFromLevel" class="secondary">Back Menu</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="gameScreen" class="screen">
+    <div class="topbar">
+      <button id="backMenuFromGame" class="secondary">Back</button>
+      <div class="hud">
+        <div class="hud-box"><div class="hud-label">Level</div><div class="hud-value" id="levelValue">1</div></div>
+        <div class="hud-box"><div class="hud-label">Score</div><div class="hud-value" id="scoreValue">0</div></div>
+        <div class="hud-box"><div class="hud-label">Combo</div><div class="hud-value" id="comboValue">0</div></div>
+        <div class="hud-box"><div class="hud-label">Judge</div><div class="hud-value" id="judgeValue" style="font-size:20px;">Ready</div></div>
+      </div>
+    </div>
+
+    <div id="gameWrap">
+      <div id="lanes">
+        <div class="lane" data-lane="0"></div>
+        <div class="lane" data-lane="1"></div>
+        <div class="lane" data-lane="2"></div>
+        <div class="lane" data-lane="3"></div>
+      </div>
+      <div class="hit-line"></div>
+      <div class="bottom-controls">
+        <button class="lane-btn" data-btn="0">D</button>
+        <button class="lane-btn" data-btn="1">F</button>
+        <button class="lane-btn" data-btn="2">J</button>
+        <button class="lane-btn" data-btn="3">K</button>
+      </div>
+    </div>
+  </section>
+
+  <div id="resultOverlay" class="overlay">
+    <div class="result-card">
+      <h2>Result</h2>
+      <div class="result-grid">
+        <div class="result-item"><div class="a">Score</div><div class="b" id="finalScore">0</div></div>
+        <div class="result-item"><div class="a">Max Combo</div><div class="b" id="finalCombo">0</div></div>
+        <div class="result-item"><div class="a">Perfect</div><div class="b" id="finalPerfect">0</div></div>
+        <div class="result-item"><div class="a">Good</div><div class="b" id="finalGood">0</div></div>
+        <div class="result-item"><div class="a">Bad</div><div class="b" id="finalBad">0</div></div>
+        <div class="result-item"><div class="a">Miss</div><div class="b" id="finalMiss">0</div></div>
+      </div>
+      <div class="menu-buttons" style="grid-template-columns:1fr 1fr;">
+        <button id="retryBtn">Retry</button>
+        <button id="levelSelectBtn" class="secondary">Level Select</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const screens = {
+      menu: document.getElementById('menuScreen'),
+      how: document.getElementById('howScreen'),
+      level: document.getElementById('levelScreen'),
+      game: document.getElementById('gameScreen')
+    };
+
+    function showScreen(name) {
+      Object.values(screens).forEach(s => s.classList.remove('active'));
+      screens[name].classList.add('active');
+    }
+
+    const levelValue = document.getElementById('levelValue');
+    const scoreValue = document.getElementById('scoreValue');
+    const comboValue = document.getElementById('comboValue');
+    const judgeValue = document.getElementById('judgeValue');
+    const resultOverlay = document.getElementById('resultOverlay');
+    const lanes = Array.from(document.querySelectorAll('.lane'));
+    const laneButtons = Array.from(document.querySelectorAll('.lane-btn'));
+    const gameWrap = document.getElementById('gameWrap');
+
+    let currentLevel = 1;
+    let notes = [];
+    let animationId = null;
+    let running = false;
+    let startTime = 0;
+    let score = 0;
+    let combo = 0;
+    let maxCombo = 0;
+    let counts = { perfect: 0, good: 0, bad: 0, miss: 0 };
+
+    const laneOffsets = [0, 25, 50, 75];
+    const keys = ['D', 'F', 'J', 'K'];
+
+    const configs = {
+      1: { duration: 18, approach: 2.0, spacingMin: 0.45, spacingMax: 0.75 },
+      2: { duration: 22, approach: 1.55, spacingMin: 0.30, spacingMax: 0.55 },
+      3: { duration: 25, approach: 1.15, spacingMin: 0.22, spacingMax: 0.42 }
+    };
+
+    function bindMenuButtons() {
+      document.getElementById('startGameBtn').addEventListener('click', () => showScreen('level'));
+      document.getElementById('howToPlayBtn').addEventListener('click', () => showScreen('how'));
+      document.getElementById('goLevelFromHow').addEventListener('click', () => showScreen('level'));
+      document.getElementById('backMenuFromHow').addEventListener('click', () => showScreen('menu'));
+      document.getElementById('backHowFromLevel').addEventListener('click', () => showScreen('how'));
+      document.getElementById('backMenuFromLevel').addEventListener('click', () => showScreen('menu'));
+      document.getElementById('backMenuFromGame').addEventListener('click', backToMenu);
+      document.getElementById('retryBtn').addEventListener('click', () => startLevel(currentLevel));
+      document.getElementById('levelSelectBtn').addEventListener('click', () => {
+        hideResults();
+        showScreen('level');
+      });
+
+      document.querySelectorAll('[data-level]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const level = Number(btn.getAttribute('data-level'));
+          startLevel(level);
+        });
+      });
+    }
+
+    function hideResults() {
+      resultOverlay.classList.remove('show');
+    }
+
+    function clearNotes() {
+      document.querySelectorAll('.note').forEach(n => n.remove());
+    }
+
+    function resetGameState() {
+      score = 0;
+      combo = 0;
+      maxCombo = 0;
+      counts = { perfect: 0, good: 0, bad: 0, miss: 0 };
+      scoreValue.textContent = '0';
+      comboValue.textContent = '0';
+      judgeValue.textContent = 'Ready';
+      clearNotes();
+    }
+
+    function buildNotes(level) {
+      const config = configs[level];
+      const arr = [];
+      let t = 1.0;
+      let id = 0;
+
+      while (t < config.duration - 0.5) {
+        const lane = Math.floor(Math.random() * 4);
+        arr.push({
+          id: id++,
+          lane,
+          time: Number(t.toFixed(2)),
+          judged: false,
+          hit: false,
+          el: null
+        });
+
+        if (Math.random() > 0.76) {
+          let lane2 = Math.floor(Math.random() * 4);
+          while (lane2 === lane) lane2 = Math.floor(Math.random() * 4);
+          arr.push({
+            id: id++,
+            lane: lane2,
+            time: Number(t.toFixed(2)),
+            judged: false,
+            hit: false,
+            el: null
+          });
+        }
+
+        t += config.spacingMin + Math.random() * (config.spacingMax - config.spacingMin);
+      }
+
+      return arr.sort((a, b) => a.time - b.time);
+    }
+
+    function createNoteElements() {
+      notes.forEach(note => {
+        const el = document.createElement('div');
+        el.className = 'note';
+        el.style.left = `calc(${laneOffsets[note.lane]}% + 8px)`;
+        el.style.width = 'calc(25% - 16px)';
+        gameWrap.appendChild(el);
+        note.el = el;
+      });
+    }
+
+    function updateHud(text) {
+      scoreValue.textContent = score.toLocaleString();
+      comboValue.textContent = combo.toLocaleString();
+      judgeValue.textContent = text;
+    }
+
+    function stopGame() {
+      running = false;
+      if (animationId) cancelAnimationFrame(animationId);
+      animationId = null;
+      clearNotes();
+    }
+
+    function backToMenu() {
+      stopGame();
+      hideResults();
+      showScreen('menu');
+    }
+
+    function startLevel(level) {
+      stopGame();
+      hideResults();
+      currentLevel = level;
+      levelValue.textContent = String(level);
+      showScreen('game');
+      resetGameState();
+      notes = buildNotes(level);
+      createNoteElements();
+      running = true;
+      startTime = performance.now();
+      animationId = requestAnimationFrame(loop);
+    }
+
+    function judgeDelta(delta) {
+      const a = Math.abs(delta);
+      if (a <= 0.08) return 'perfect';
+      if (a <= 0.16) return 'good';
+      if (a <= 0.26) return 'bad';
+      return null;
+    }
+
+    function addScore(type) {
+      if (type === 'perfect') score += 1000;
+    }
+
+    function flashLane(lane) {
+      lanes[lane].classList.add('flash');
+      laneButtons[lane].classList.add('flash');
+      setTimeout(() => {
+        lanes[lane].classList.remove('flash');
+        laneButtons[lane].classList.remove('flash');
+      }, 80);
+    }
+
+    function hitLane(lane) {
+      if (!running) return;
+
+      flashLane(lane);
+
+      const now = (performance.now() - startTime) / 1000;
+      const candidates = notes
+        .filter(n => !n.judged && n.lane === lane)
+        .sort((a, b) => Math.abs(a.time - now) - Math.abs(b.time - now));
+
+      const target = candidates[0];
+
+      if (!target) {
+        combo = 0;
+        updateHud('EMPTY');
+        return;
+      }
+
+      const delta = now - target.time;
+      const result = judgeDelta(delta);
+
+      if (result === 'perfect') {
+        target.judged = true;
+        target.hit = true;
+        if (target.el) target.el.remove();
+        counts.perfect += 1;
+        addScore('perfect');
+        combo += 1;
+        if (combo > maxCombo) maxCombo = combo;
+        updateHud('PERFECT');
+        return;
+      }
+
+      combo = 0;
+
+      if (result === 'good') {
+        counts.good += 1;
+        updateHud('GOOD - STAYS');
+      } else if (result === 'bad') {
+        counts.bad += 1;
+        updateHud('BAD - STAYS');
+      } else {
+        updateHud(delta < 0 ? 'EARLY' : 'LATE');
+      }
+    }
+
+    function endGame() {
+      stopGame();
+      document.getElementById('finalScore').textContent = score.toLocaleString();
+      document.getElementById('finalCombo').textContent = String(maxCombo);
+      document.getElementById('finalPerfect').textContent = String(counts.perfect);
+      document.getElementById('finalGood').textContent = String(counts.good);
+      document.getElementById('finalBad').textContent = String(counts.bad);
+      document.getElementById('finalMiss').textContent = String(counts.miss);
+      resultOverlay.classList.add('show');
+    }
+
+    function loop() {
+      if (!running) return;
+
+      const config = configs[currentLevel];
+      const now = (performance.now() - startTime) / 1000;
+      let done = 0;
+
+      notes.forEach(note => {
+        if (note.judged) {
+          done += 1;
+          return;
+        }
+
+        const progress = 1 - ((note.time - now) / config.approach);
+
+        if (progress > 1.22) {
+          note.judged = true;
+          counts.miss += 1;
+          score -= 500;
+          if (score < 0) score = 0;
+          combo = 0;
+          if (note.el) note.el.remove();
+          updateHud('MISS -500');
+          done += 1;
+          return;
+        }
+
+        if (progress >= -0.2 && progress <= 1.22 && note.el) {
+          const y = 40 + progress * 580;
+          note.el.style.top = `${y}px`;
+        }
+      });
+
+      if (now >= config.duration || done >= notes.length) {
+        endGame();
+        return;
+      }
+
+      animationId = requestAnimationFrame(loop);
+    }
+
+    document.addEventListener('keydown', (e) => {
+      const key = e.key.toUpperCase();
+      const lane = keys.indexOf(key);
+
+      if (lane !== -1) {
+        e.preventDefault();
+        hitLane(lane);
+      }
+
+      if (key === 'ESCAPE') {
+        backToMenu();
+      }
+    });
+
+    laneButtons.forEach((btn, i) => {
+      btn.addEventListener('mousedown', () => hitLane(i));
+      btn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        hitLane(i);
+      }, { passive: false });
+    });
+
+    bindMenuButtons();
+  </script>
+</body>
+</html>
