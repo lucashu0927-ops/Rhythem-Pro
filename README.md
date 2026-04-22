@@ -26,8 +26,6 @@ Press **D, F, J, K** as notes fall toward the hit line.
 | J   | Mid-right |
 | K   | Right |
 
-## 🌐 Play the Game
-👉 (Put your GitHub Pages link here)
 
 ## 🛠️ Tech
 - HTML
